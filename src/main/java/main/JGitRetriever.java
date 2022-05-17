@@ -189,7 +189,6 @@ public class JGitRetriever {
     }
 
     private void checkBuggyness(List<String[]> output){
-        int v;
         for(TicketBug bug: this.tickets){
             try {
                 setBugyness(output, bug);
@@ -222,6 +221,44 @@ public class JGitRetriever {
         return res;
     }
 
+    private int getAddedLines(Edit edit){
+        if(edit.getType() == Edit.Type.INSERT) return edit.getEndB()-edit.getBeginB();
+        else if(edit.getType() == Edit.Type.REPLACE){
+            int diffA = edit.getEndA()-edit.getBeginA();
+            int diffB = edit.getEndB()-edit.getBeginB();
+            if(diffA<diffB)
+                return diffB-diffA;
+
+        }
+        return 0;
+    }
+
+    private int getDeletedLines(Edit edit) {
+        if (edit.getType() == Edit.Type.DELETE) {
+            return edit.getEndA() - edit.getBeginA();
+        } else if (edit.getType() == Edit.Type.REPLACE) {
+            int diffA = edit.getEndA() - edit.getBeginA();
+            int diffB = edit.getEndB() - edit.getBeginB();
+            if (diffA > diffB) {
+                return diffA - diffB;
+            }
+
+        }
+        return 0;
+    }
+
+    private int getModifiedLines(Edit edit){
+        if(edit.getType() == Edit.Type.REPLACE){
+            int diffA = edit.getEndA()-edit.getBeginA();
+            int diffB = edit.getEndB()-edit.getBeginB();
+            if((diffA==diffB)||(diffA<diffB)) return diffA;
+            else{
+                return diffB;
+            }
+        }
+        return 0;
+    }
+
     private CsvRow getFileData(String file, int vers, List<Edit> editList, HashMap<String, CsvRow> currentRows, DiffEntry.ChangeType ct, PersonIdent auth){
         int loc=0;
         int touchedLoc=0;
@@ -241,21 +278,9 @@ public class JGitRetriever {
 
 
         for(Edit edit:editList){
-            if(edit.getType() == Edit.Type.INSERT) { addedLines += edit.getEndB() - edit.getBeginB(); }
-            if(edit.getType() == Edit.Type.DELETE) { deletedLines += edit.getEndA() - edit.getBeginA(); }
-            if(edit.getType() == Edit.Type.REPLACE){
-                int diffA = edit.getEndA()-edit.getBeginA();
-                int diffB = edit.getEndB()-edit.getBeginB();
-                if(diffA==diffB) modifiedLines += diffA;
-                if(diffA<diffB){
-                    modifiedLines += diffA;
-                    addedLines += diffB-diffA;
-                }
-                if(diffA>diffB){
-                    modifiedLines += diffB;
-                    deletedLines += diffA-diffB;
-                }
-            }
+            addedLines=getAddedLines(edit);
+            deletedLines=getDeletedLines(edit);
+            modifiedLines=getModifiedLines(edit);
         }
 
         if(ct==DiffEntry.ChangeType.MODIFY) {
