@@ -24,7 +24,6 @@ public class JIraInfo {
     private static final double P=1.5;
     private static String releaseDate="releaseDate";
     private static String fields="fields";
-    private static String projLocalPath="C:\\Users\\39320\\Desktop\\Corsi\\isw2\\bookkeeper3\\.git";
 
 
     private static String readAll(Reader rd) throws IOException {
@@ -103,7 +102,7 @@ public class JIraInfo {
             releases.add(new Release(dates.get(i),i+1));
         }
         bugs=getJira();
-        jgr=new JGitRetriever(projLocalPath, releases, bugs);
+        jgr=new JGitRetriever("C:\\Users\\39320\\Desktop\\Corsi\\isw2\\bookkeeper3\\.git", releases, bugs);
         jgr.getAnyFileAndData();
     }
 
