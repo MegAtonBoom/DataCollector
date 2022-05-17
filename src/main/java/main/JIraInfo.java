@@ -145,16 +145,16 @@ public class JIraInfo {
                 JSONArray versions=bugs.getJSONObject(i%1000).getJSONObject(fields).getJSONArray("versions");
                 if( (versNum=versions.length())!=0){
                     for(int y=0; y<versNum; y++){
-                        if(versions.getJSONObject(y).has("releaseDate")){
-                            avs.add(formatter.parse(versions.getJSONObject(y).get("releaseDate").toString()));
+                        if(versions.getJSONObject(y).has(releaseDate)){
+                            avs.add(formatter.parse(versions.getJSONObject(y).get(releaseDate).toString()));
                         }
                     }
 
                     Collections.sort(avs);
                 }
-                resolutionDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject("fields").getString("resolutiondate").substring(0,10));
+                resolutionDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject(fields).getString("resolutiondate").substring(0,10));
                 if((resolutionDate=getRelease(resolutionDate))==null) continue;
-                openDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject("fields").getString("created").substring(0,10));
+                openDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject(fields).getString("created").substring(0,10));
                 if((openDate=getRelease(openDate))==null) continue;
 
                 if(!checkInfoConsistency(openDate,resolutionDate,avs)) continue;

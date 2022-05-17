@@ -17,8 +17,8 @@ public class CsvRow {
     private int age;
     private int weighedAge;
     private int creationTime;
-    private double AvgAddedLoc;
-    private double AvgChurn;
+    private double avgAddedLoc;
+    private double avgChurn;
     private List<PersonIdent> authors;
     private String filePath;
     private boolean buggy=false;
@@ -35,8 +35,8 @@ public class CsvRow {
         return this.touchedLoc;
     }
 
-    public void setTouchedLoc(int Loc) {
-        this.touchedLoc = Loc;
+    public void setTouchedLoc(int loc) {
+        this.touchedLoc = loc;
     }
 
     public int getnRevisions() {
@@ -51,16 +51,16 @@ public class CsvRow {
         return this.addedLoc;
     }
 
-    public void setAddedLoc(int Loc) {
-        this.addedLoc = Loc;
+    public void setAddedLoc(int loc) {
+        this.addedLoc = loc;
     }
 
     public int getMaxAddedLoc() {
         return this.maxAddedLoc;
     }
 
-    public void setMaxAddedLoc(int Loc) {
-        this.maxAddedLoc = Loc;
+    public void setMaxAddedLoc(int loc) {
+        this.maxAddedLoc = loc;
     }
 
     public int getChurn() {
@@ -80,18 +80,18 @@ public class CsvRow {
     }
 
     public double getAvgAddedLoc() {
-        return this.AvgAddedLoc;
+        return this.avgAddedLoc;
     }
 
-    public void setAvgAddedLoc(double Loc) {
-        this.AvgAddedLoc = Loc;
+    public void setAvgAddedLoc(double loc) {
+        this.avgAddedLoc = loc;
     }
 
     public double getAvgChurn() {
-        return this.AvgChurn;
+        return this.avgChurn;
     }
 
-    public void setAvgChurn(double churn) { this.AvgChurn = churn; }
+    public void setAvgChurn(double churn) { this.avgChurn = churn; }
 
     public String getFilePath() {
         return filePath;
@@ -167,10 +167,10 @@ public class CsvRow {
                 ""+this.touchedLoc,
                 ""+this.addedLoc,
                 ""+this.maxAddedLoc,
-                ""+this.AvgAddedLoc,
+                ""+this.avgAddedLoc,
                 ""+this.churn,
                 ""+this.maxChurn,
-                ""+this.AvgChurn,
+                ""+this.avgChurn,
                 ""+this.age,
                 ""+this.weighedAge,
                 ""+this.authors.size(),
@@ -196,7 +196,7 @@ public class CsvRow {
     }
 
     public void ageSetter(int current){
-        double time=((((current-this.creationTime)/60)/60)/24)/(double)7;
+        double time=((((current-this.creationTime)/60)/60)/(double)24)/(double)7;
         this.age=(int)Math.ceil(time);
         this.weighedAge=this.age*this.touchedLoc;
     }

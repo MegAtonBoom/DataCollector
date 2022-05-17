@@ -227,9 +227,11 @@ public class JGitRetriever {
         int churn=0;
         int maxChurn=0;
         int revChurn=0;
-        int addedLines=0, deletedLines=0, modifiedLines=0;
-        double AvgAddedLoc=0;
-        double AvgChurn=0;
+        int addedLines=0;
+        int deletedLines=0;
+        int modifiedLines=0;
+        double avgAddedLoc=0;
+        double avgChurn=0;
         List<PersonIdent> pi=new ArrayList<>();
         CsvRow current=new CsvRow(vers, file);
 
@@ -262,14 +264,14 @@ public class JGitRetriever {
             maxAddedLoc=old.getMaxAddedLoc();
             churn=old.getChurn();
             maxChurn=old.getMaxChurn();
-            AvgAddedLoc=old.getAvgAddedLoc();
-            AvgChurn=old.getAvgChurn();
+            avgAddedLoc=old.getAvgAddedLoc();
+            avgChurn=old.getAvgChurn();
             pi=old.getAuthors();
 
             touchedLoc = touchedLoc + addedLines + deletedLines + modifiedLines;
             addedLOC = addedLOC + addedLines;
             maxAddedLoc = Math.max(maxAddedLoc, addedLines);
-            AvgAddedLoc = ((AvgAddedLoc * (nRevisions)) + addedLines) / nRevisions + 1;
+            avgAddedLoc = ((avgAddedLoc * (nRevisions)) + addedLines) / nRevisions + 1;
             revChurn = addedLines - deletedLines;
             if (revChurn < 0) {
                 revChurn *= -1;
@@ -277,7 +279,7 @@ public class JGitRetriever {
 
             churn = churn + revChurn;
             maxChurn = Math.max(maxChurn, revChurn);
-            AvgChurn = ((AvgChurn * (nRevisions)) + revChurn) / nRevisions + 1;
+            avgChurn = ((avgChurn * (nRevisions)) + revChurn) / nRevisions + 1;
 
         }
         loc = loc + addedLines - deletedLines;
@@ -287,12 +289,12 @@ public class JGitRetriever {
         current.setTouchedLoc(touchedLoc);
         current.setAddedLoc(addedLOC);
         current.setMaxAddedLoc(maxAddedLoc);
-        current.setAvgAddedLoc(AvgAddedLoc);
+        current.setAvgAddedLoc(avgAddedLoc);
         current.setnRevisions(nRevisions);
 
         current.setChurn(churn);
         current.setMaxChurn(maxChurn);
-        current.setAvgChurn(AvgChurn);
+        current.setAvgChurn(avgChurn);
         current.setAuthors(pi);
 
         return current;
