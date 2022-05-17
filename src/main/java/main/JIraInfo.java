@@ -156,8 +156,6 @@ public class JIraInfo {
                 openDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject(fields).getString("created").substring(0,10));
                 openDate=getRelease(openDate);
 
-                if(!checkInfoConsistency(openDate,resolutionDate,avs)) continue;  ///////////
-
                 try {
                     if (versNum != 0) {
                         infectDate = avs.get(0);
