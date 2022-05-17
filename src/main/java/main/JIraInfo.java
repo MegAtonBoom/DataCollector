@@ -152,33 +152,34 @@ public class JIraInfo {
                     Collections.sort(avs);
                 }
                 resolutionDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject(fields).getString("resolutiondate").substring(0,10));
-                if((resolutionDate=getRelease(resolutionDate))==null) continue;
+                resolutionDate=getRelease(resolutionDate);
                 openDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject(fields).getString("created").substring(0,10));
-                if((openDate=getRelease(openDate))==null) continue;
+                openDate=getRelease(openDate);
 
-                if(!checkInfoConsistency(openDate,resolutionDate,avs)) continue;
+                if(!checkInfoConsistency(openDate,resolutionDate,avs)) continue;  ///////////
 
-
-                if(versNum!=0){
-                    infectDate=avs.get(0);
-                    infectRelease=null;
-                    for(int y=0;y<releases.size();y++){
-                        if(infectDate.equals(releases.get(y).getDate())){
-                            infectRelease=releases.get(y);
+                try {
+                    if (versNum != 0) {
+                        infectDate = avs.get(0);
+                        infectRelease = null;
+                        for (int y = 0; y < releases.size(); y++) {
+                            if (infectDate.equals(releases.get(y).getDate())) {
+                                infectRelease = releases.get(y);
+                            }
                         }
-                    }
-                    if(infectRelease==null) continue;
-                }
-                else{
-                    for(int y=0;y<releases.size();y++){
-                        if(resolutionDate.equals(releases.get(y).getDate())) fvRelease=releases.get(y);
+                    } else {
+                        for (int y = 0; y < releases.size(); y++) {
+                            if (resolutionDate.equals(releases.get(y).getDate())) fvRelease = releases.get(y);
 
-                        if(openDate.equals(releases.get(y).getDate())) ovRelease=releases.get(y);
+                            if (openDate.equals(releases.get(y).getDate())) ovRelease = releases.get(y);
+                        }
+                        infectRelease = getInfectedRelease(ovRelease, fvRelease);
                     }
-                    infectRelease=getInfectedRelease(ovRelease,fvRelease);
+                    if ((!checkInfoConsistency(openDate,resolutionDate,avs))||!checkReleasesConsistency(infectRelease,ovRelease,fvRelease)) continue;
+                    allBugs.add(new TicketBug(key, infectRelease, fvRelease));
+                }catch(Exception e){
+                    //just skipping
                 }
-                if(fvRelease==null||ovRelease==null||infectRelease==null) continue;
-                allBugs.add(new TicketBug(key, infectRelease, fvRelease));
 
             }
         } while (i < total);
@@ -187,7 +188,7 @@ public class JIraInfo {
 
     private static boolean checkInfoConsistency(Date ov, Date fv, List<Date> avs){
         boolean consistent=false;
-        if(fv.equals(ov)) return false;
+        if(fv.equals(ov)||fv==null||ov==null) return false;
         if(avs.isEmpty() && avs.get(0).after(ov)) return false;
 
         if(avs.isEmpty()){
@@ -198,6 +199,11 @@ public class JIraInfo {
             if(avs.get(avs.size()-1).after(fv)||avs.get(avs.size()-1).equals(fv)) return false;
         }
         return true;
+    }
+
+    private static boolean checkReleasesConsistency(Release iv, Release ov, Release fv){
+        if(iv==null||ov==null||fv==null) return false;
+        else return true;
     }
 
 

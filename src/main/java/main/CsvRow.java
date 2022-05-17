@@ -196,7 +196,7 @@ public class CsvRow {
     }
 
     public void ageSetter(int current){
-        double time=((((current-this.creationTime)/60)/60)/(double)24)/7;
+        double time=((((current-this.creationTime)/(double)60)/60)/24)/7;
         this.age=(int)Math.ceil(time);
         this.weighedAge=this.age*this.touchedLoc;
     }
