@@ -126,7 +126,6 @@ public class JIraInfo {
 
         //Get JSON API for closed bugs w/ AV in the project
         do {
-
             //Only gets a max of 1000 at a time, so must do this multiple times if bugs >1000
             j = i + 1000;
 
@@ -142,37 +141,18 @@ public class JIraInfo {
                 avs=new ArrayList<>();
                 String key=bugs.getJSONObject(i%1000).get("key").toString();
                 JSONArray versions=bugs.getJSONObject(i%1000).getJSONObject(fields).getJSONArray("versions");
-                if( (versNum=versions.length())!=0){
-                    for(int y=0; y<versNum; y++){
-                        if(versions.getJSONObject(y).has(releaseDate)){
-                            avs.add(formatter.parse(versions.getJSONObject(y).get(releaseDate).toString()));
-                        }
-                    }
 
-                    Collections.sort(avs);
-                }
+                avs=getAvs(versions, avs);
+
                 resolutionDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject(fields).getString("resolutiondate").substring(0,10));
                 resolutionDate=getRelease(resolutionDate);
                 openDate=formatter.parse(bugs.getJSONObject(i%1000).getJSONObject(fields).getString("created").substring(0,10));
                 openDate=getRelease(openDate);
 
                 try {
-                    if (versNum != 0) {
-                        infectDate = avs.get(0);
-                        infectRelease = null;
-                        for (int y = 0; y < releases.size(); y++) {
-                            if (infectDate.equals(releases.get(y).getDate())) {
-                                infectRelease = releases.get(y);
-                            }
-                        }
-                    } else {
-                        for (int y = 0; y < releases.size(); y++) {
-                            if (resolutionDate.equals(releases.get(y).getDate())) fvRelease = releases.get(y);
-
-                            if (openDate.equals(releases.get(y).getDate())) ovRelease = releases.get(y);
-                        }
-                        infectRelease = getInfectedRelease(ovRelease, fvRelease);
-                    }
+                    fvRelease=getReleaseFromDate(resolutionDate);
+                    ovRelease=getReleaseFromDate(openDate);
+                    infectRelease=getInfectedRelease(avs, ovRelease, fvRelease);
                     if ((!checkInfoConsistency(openDate,resolutionDate,avs))||!checkReleasesConsistency(infectRelease,ovRelease,fvRelease)) continue;
                     allBugs.add(new TicketBug(key, infectRelease, fvRelease));
                 }catch(Exception e){
@@ -182,6 +162,45 @@ public class JIraInfo {
             }
         } while (i < total);
         return allBugs;
+    }
+
+
+    private static Release getInfectedRelease(List<Date> avs, Release ov,Release fv){
+        Date infectDate;
+        Release infectRelease;
+        if (!avs.isEmpty()) {
+            infectDate = avs.get(0);
+            infectRelease=getReleaseFromDate(infectDate);
+        } else {
+
+            infectRelease = computeInfectedRelease(ov, fv);
+        }
+
+        return infectRelease;
+
+    }
+
+
+    private static Release getReleaseFromDate(Date date){
+        for (int y = 0; y < releases.size(); y++) {
+            if (date.equals(releases.get(y).getDate())) return releases.get(y);
+        }
+        return null;
+    }
+
+    private static List<Date> getAvs(JSONArray versions, List<Date> avs) throws ParseException {
+        int versNum;
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        if( (versNum=versions.length())!=0){
+            for(int y=0; y<versNum; y++){
+                if(versions.getJSONObject(y).has(releaseDate)){
+                    avs.add(formatter.parse(versions.getJSONObject(y).get(releaseDate).toString()));
+                }
+            }
+
+            Collections.sort(avs);
+        }
+        return avs;
     }
 
     private static boolean checkInfoConsistency(Date ov, Date fv, List<Date> avs){
@@ -206,7 +225,7 @@ public class JIraInfo {
 
 
     //Cold Start approach
-    private static Release getInfectedRelease(Release ovRel, Release fvRel){
+    private static Release computeInfectedRelease(Release ovRel, Release fvRel){
         int ov=ovRel.getVersion();
         int fv= fvRel.getVersion();
         int iv=(int)Math.floor(fv-((fv-ov)*P));
