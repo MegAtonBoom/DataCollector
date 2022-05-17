@@ -74,98 +74,23 @@ public class JGitRetriever {
             newCommit = this.commits.get(i - 1);
             PersonIdent auth=newCommit.getCommitterIdent();
 
-            for(TicketBug ticket: this.tickets ){
-                if(newCommit.getFullMessage().contains(ticket.getId())){
-                    tick=true;
-                    currentTb=ticket;
-                    break;
-                }
-            }
+            currentTb=getRelatedTicket(newCommit);
 
             if ((new Date((newCommit.getCommitTime() * 1000L))).after(this.releases.get(j).getDate())) {
                 j++;
                 entrySet = rows.entrySet();
                 it = entrySet.iterator();
-                while(it.hasNext()){
-                    Map.Entry<String, CsvRow> me =it.next();
-                    CsvRow currRow=me.getValue();
-                    currRow.setVersion(j);
-                    currRow.ageSetter(oldCommit.getCommitTime());
-                    output.add(currRow.toStringArray());
-                }
+                writeOutput(it, output, j, oldCommit);
             }
 
             try (ObjectReader reader = git.getRepository().newObjectReader()) {
-                AbstractTreeIterator oldTreeIterator;
-                if (oldCommit == null) {
-                    oldTreeIterator = new EmptyTreeIterator();
-                } else {
-                    oldTreeIterator = new CanonicalTreeParser(null, reader, oldCommit.getTree().getId());
-                }
+                AbstractTreeIterator oldTreeIterator=getOld(reader, oldCommit);
                 AbstractTreeIterator newTreeIterator = new CanonicalTreeParser(null, reader, newCommit.getTree().getId());
 
                 try (DiffFormatter diffFormatter = new DiffFormatter(outputStream)) {
                     diffFormatter.setRepository(git.getRepository());
                     diffEntries = diffFormatter.scan(oldTreeIterator, newTreeIterator);
-
-                    for (int k = 0; k < diffEntries.size(); k++) {
-
-                        entry = diffEntries.get(k);
-                        EditList el = diffFormatter.toFileHeader(entry).toEditList();
-                        String enp = entry.getNewPath();
-                        String eop = entry.getOldPath();
-                        DiffEntry.ChangeType ct = entry.getChangeType();
-
-                        if (ct == DiffEntry.ChangeType.ADD) {
-                            if (enp.endsWith(targetExt) && !rows.containsKey(enp)) {
-                                //newCommit.
-                                row = getFileData(enp, j+1, el, rows, ct, auth);
-                                row.setCreationDate(newCommit.getCommitTime());
-                                rows.put(enp, row);
-                            }
-                        }
-                        else if (ct == DiffEntry.ChangeType.MODIFY){
-                            if(enp.endsWith(targetExt) && rows.containsKey(enp))
-                            {
-                                if(tick&&(!currentTb.getAffectedFiles().contains(enp))) {
-                                    currentTb.addAffectedFile(enp);
-                                }
-                                row = getFileData(enp, j+1, el, rows, ct, auth);
-                                row.setCreationDate(rows.get(enp).getCreationTime());
-                                rows.put(enp, row);
-
-                            }
-
-                        }
-                        else if (ct == DiffEntry.ChangeType.DELETE) {
-                            if (eop.endsWith(targetExt) && rows.containsKey(eop)) {
-                                if(tick&&(!currentTb.getAffectedFiles().contains(eop))){
-                                    currentTb.addAffectedFile(eop);
-                                }
-                                rows.remove(eop);
-                            }
-                        }
-                        else if (ct == DiffEntry.ChangeType.RENAME) {
-                            if (eop.endsWith(targetExt) && rows.containsKey(eop)) {
-                                CsvRow tempRow=rows.get(eop);
-                                tempRow.setVersion(j+1);
-                                tempRow.setFilePath(enp);
-                                rows.put(enp, tempRow);
-                                rows.remove(eop);
-                            }
-                        }
-                        else if (ct == DiffEntry.ChangeType.COPY && !rows.containsKey(enp)) {
-
-                            CsvRow tempRow=rows.get(eop);
-                            tempRow.setVersion(j+1);
-                            tempRow.setFilePath(enp);
-                            rows.put(enp, tempRow);
-
-
-                        }
-
-
-                    }
+                    writeRows(diffEntries, rows, auth, j+1, newCommit, currentTb);
 
                 }
             }
@@ -175,16 +100,109 @@ public class JGitRetriever {
         entrySet = rows.entrySet();
 
         it = entrySet.iterator();
-        while(it.hasNext()){
-            Map.Entry<String, CsvRow> me =it.next();
-            CsvRow currRow= me.getValue();
-            currRow.setVersion(j);
-            output.add(currRow.toStringArray());
-        }
+        writeOutput(it, output, j, oldCommit);
         checkBuggyness(output);
 
         ocsvi = new OpencsvInterface(this.outputCsv, output);
         ocsvi.writeFile();
+
+    }
+
+    private void writeRows (List<DiffEntry> diffEntries, HashMap<String, CsvRow> rows, PersonIdent auth, int v, RevCommit commit, TicketBug tb ) throws IOException {
+
+        OutputStream outputStream = new ByteArrayOutputStream();
+        DiffEntry entry;
+        String targetExt=".java";
+        CsvRow row;
+
+        try (DiffFormatter diffFormatter = new DiffFormatter(outputStream)) {
+            diffFormatter.setRepository(git.getRepository());
+            for (int k = 0; k < diffEntries.size(); k++) {
+
+                entry = diffEntries.get(k);
+                EditList el = diffFormatter.toFileHeader(entry).toEditList();
+                String enp = entry.getNewPath();
+                String eop = entry.getOldPath();
+                DiffEntry.ChangeType ct = entry.getChangeType();
+
+                if (ct == DiffEntry.ChangeType.ADD && enp.endsWith(targetExt) && !rows.containsKey(enp)) {
+                        //new file
+                        row = getFileData(enp, v, el, rows, ct, auth);
+                        row.setCreationDate(commit.getCommitTime());
+                        rows.put(enp, row);
+
+                }
+                else if (ct == DiffEntry.ChangeType.MODIFY && enp.endsWith(targetExt) && rows.containsKey(enp)){
+
+
+                        if((tb!=null)&&(!tb.getAffectedFiles().contains(enp))) {
+                            tb.addAffectedFile(enp);
+                        }
+                        row = getFileData(enp, v, el, rows, ct, auth);
+                        row.setCreationDate(rows.get(enp).getCreationTime());
+                        rows.put(enp, row);
+
+
+
+                }
+                else if (ct == DiffEntry.ChangeType.DELETE && eop.endsWith(targetExt) && rows.containsKey(eop)) {
+
+                        if((tb!=null)&&(!tb.getAffectedFiles().contains(eop))){
+                            tb.addAffectedFile(eop);
+                        }
+                        rows.remove(eop);
+
+                }
+                else if (ct == DiffEntry.ChangeType.RENAME && eop.endsWith(targetExt) && rows.containsKey(eop)) {
+
+                        CsvRow tempRow=rows.get(eop);
+                        tempRow.setVersion(v);
+                        tempRow.setFilePath(enp);
+                        rows.put(enp, tempRow);
+                        rows.remove(eop);
+
+                }
+                else if (ct == DiffEntry.ChangeType.COPY && !rows.containsKey(enp)) {
+
+                    CsvRow tempRow=rows.get(eop);
+                    tempRow.setVersion(v);
+                    tempRow.setFilePath(enp);
+                    rows.put(enp, tempRow);
+
+                }
+
+            }
+
+        }
+
+    }
+
+    private TicketBug getRelatedTicket (RevCommit commit){
+        for(TicketBug ticket: this.tickets ){
+            if(commit.getFullMessage().contains(ticket.getId())){
+                return ticket;
+            }
+        }
+        return null;
+    }
+
+    private void writeOutput(Iterator<Map.Entry<String, CsvRow>> it, List<String[]> output, int j, RevCommit commit){
+        while(it.hasNext()){
+            Map.Entry<String, CsvRow> me =it.next();
+            CsvRow currRow=me.getValue();
+            currRow.setVersion(j);
+            currRow.ageSetter(commit.getCommitTime());
+            output.add(currRow.toStringArray());
+        }
+
+    }
+
+    private AbstractTreeIterator getOld(ObjectReader or, RevCommit commit) throws IOException {
+        if (commit == null) {
+            return new EmptyTreeIterator();
+        } else {
+            return new CanonicalTreeParser(null, or, commit.getTree().getId());
+        }
 
     }
 

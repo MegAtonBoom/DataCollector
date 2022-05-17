@@ -24,6 +24,7 @@ public class JIraInfo {
     private static final double P=1.5;
     private static String releaseDate="releaseDate";
     private static String fields="fields";
+    private static String datePattern="yyyy-MM-dd";
 
 
     private static String readAll(Reader rd) throws IOException {
@@ -83,7 +84,7 @@ public class JIraInfo {
             for (; i < total && i < j; i++) {
 
                 try {
-                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+                    SimpleDateFormat formatter = new SimpleDateFormat(datePattern);
                     String stringDate = versions.getJSONObject(i % 1000).get(releaseDate).toString();
                     Date date = formatter.parse(stringDate);
                     String version = versions.getJSONObject(i % 1000).get("name").toString();
@@ -112,12 +113,10 @@ public class JIraInfo {
         Integer j = 0;
         Integer i = 0;
         Integer total = 1;
-        Integer versNum;
 
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat formatter = new SimpleDateFormat(datePattern);
         Date resolutionDate;
         Date openDate;
-        Date infectDate;
         Release infectRelease = null;
         Release ovRelease = null;
         Release fvRelease = null;
@@ -190,7 +189,7 @@ public class JIraInfo {
 
     private static List<Date> getAvs(JSONArray versions, List<Date> avs) throws ParseException {
         int versNum;
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat formatter = new SimpleDateFormat(datePattern);
         if( (versNum=versions.length())!=0){
             for(int y=0; y<versNum; y++){
                 if(versions.getJSONObject(y).has(releaseDate)){
@@ -219,8 +218,7 @@ public class JIraInfo {
     }
 
     private static boolean checkReleasesConsistency(Release iv, Release ov, Release fv){
-        if(iv==null||ov==null||fv==null) return false;
-        else return true;
+        return(iv!=null&&ov!=null&&fv!=null);
     }
 
 
