@@ -181,28 +181,32 @@ public class JGitRetriever {
             currRow.setVersion(j);
             output.add(currRow.toStringArray());
         }
-        setBuggyness(output);
+        checkBuggyness(output);
 
         ocsvi = new OpencsvInterface(this.outputCsv, output);
         ocsvi.writeFile();
 
     }
 
-    private void setBuggyness(List<String[]> output){
+    private void checkBuggyness(List<String[]> output){
         int v;
         for(TicketBug bug: this.tickets){
             try {
-
-                for (String file : bug.getAffectedFiles()) {
-                    for (String[] row : output) {
-                        if((v=versionCast(row[0]))==-1) continue;
-                        if ((row[1].equals(file)) && (v >= bug.getInfectRelease().getVersion() && v < bug.getFixedRelease().getVersion())) {
-                            row[14] = "Yes";
-                        }
-                    }
-                }
+                setBugyness(output, bug);
             }catch(NullPointerException e){
                 //just skipping
+            }
+        }
+    }
+
+    private void setBugyness(List<String[]> output, TicketBug bug){
+        int v;
+        for (String file : bug.getAffectedFiles()) {
+            for (String[] row : output) {
+                if((v=versionCast(row[0]))==-1) continue;
+                if ((row[1].equals(file)) && (v >= bug.getInfectRelease().getVersion() && v < bug.getFixedRelease().getVersion())) {
+                    row[14] = "Yes";
+                }
             }
         }
     }
