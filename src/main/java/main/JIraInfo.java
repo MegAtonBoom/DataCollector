@@ -1,12 +1,13 @@
-import com.opencsv.CSVWriter;
+package main;
+
+import main.Release;
+import main.TicketBug;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
-import java.lang.module.ModuleDescriptor;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.text.ParseException;
@@ -21,6 +22,10 @@ public class JIraInfo {
     private static String projName="BOOKKEEPER";
     private static List<Release> releases=new ArrayList<>();
     private static final double P=1.5;
+    private static String releaseDate="releaseDate";
+    private static String fields="fields";
+    private static String projLocalPath="C:\\Users\\39320\\Desktop\\Corsi\\isw2\\bookkeeper3\\.git";
+
 
     private static String readAll(Reader rd) throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -36,8 +41,7 @@ public class JIraInfo {
         try {
             BufferedReader rd = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")));
             String jsonText = readAll(rd);
-            JSONArray json = new JSONArray(jsonText);
-            return json;
+            return new JSONArray(jsonText);
         } finally {
             is.close();
         }
@@ -48,8 +52,7 @@ public class JIraInfo {
         try {
             BufferedReader rd = new BufferedReader(new InputStreamReader(is, Charset.forName("UTF-8")));
             String jsonText = readAll(rd);
-            JSONObject json = new JSONObject(jsonText);
-            return json;
+            return new JSONObject(jsonText);
         } finally {
             is.close();
         }
@@ -60,7 +63,9 @@ public class JIraInfo {
     public static void main(String[] args) throws IOException, JSONException, GitAPIException, ParseException {
         JGitRetriever jgr;
 
-        Integer j = 0, i = 0, total = 1;
+        Integer j = 0;
+        Integer i = 0;
+        Integer total = 1;
         List<String> versNumbers= new ArrayList<String>();
         List<Date> dates=new ArrayList<>();
         List<TicketBug> bugs=new ArrayList<>();
@@ -80,13 +85,14 @@ public class JIraInfo {
 
                 try {
                     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-                    String stringDate = versions.getJSONObject(i % 1000).get("releaseDate").toString();
+                    String stringDate = versions.getJSONObject(i % 1000).get(releaseDate).toString();
                     Date date = formatter.parse(stringDate);
                     String version = versions.getJSONObject(i % 1000).get("name").toString();
                     versNumbers.add(version);
                     dates.add(date);
                 }
                 catch(JSONException e){
+                    //just skipping
                 }
 
             }
@@ -97,26 +103,27 @@ public class JIraInfo {
             releases.add(new Release(dates.get(i),i+1));
         }
         bugs=getJira();
-        jgr=new JGitRetriever("C:\\Users\\39320\\Desktop\\Corsi\\isw2\\bookkeeper3\\.git", releases, bugs);
-        //jgr.diffCommit();
-
+        jgr=new JGitRetriever(projLocalPath, releases, bugs);
         jgr.getAnyFileAndData();
-
-
-
-        return;
     }
 
 
     private static List<TicketBug> getJira() throws IOException, ParseException {
 
-        Integer j = 0, i = 0, total = 1, versNum, ivRelease=0;
+        Integer j = 0;
+        Integer i = 0;
+        Integer total = 1;
+        Integer versNum;
+
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-        Date resolutionDate, openDate, infectDate;
-        Release infectRelease = null, ovRelease = null, fvRelease = null;
+        Date resolutionDate;
+        Date openDate;
+        Date infectDate;
+        Release infectRelease = null;
+        Release ovRelease = null;
+        Release fvRelease = null;
         List<Date> avs=new ArrayList<>();
         List<TicketBug> allBugs=new ArrayList<>();
-        TicketBug currTicket;
 
         //Get JSON API for closed bugs w/ AV in the project
         do {
@@ -135,7 +142,7 @@ public class JIraInfo {
             for (; i < total && i < j; i++) {
                 avs=new ArrayList<>();
                 String key=bugs.getJSONObject(i%1000).get("key").toString();
-                JSONArray versions=bugs.getJSONObject(i%1000).getJSONObject("fields").getJSONArray("versions");
+                JSONArray versions=bugs.getJSONObject(i%1000).getJSONObject(fields).getJSONArray("versions");
                 if( (versNum=versions.length())!=0){
                     for(int y=0; y<versNum; y++){
                         if(versions.getJSONObject(y).has("releaseDate")){
@@ -182,10 +189,9 @@ public class JIraInfo {
     private static boolean checkInfoConsistency(Date ov, Date fv, List<Date> avs){
         boolean consistent=false;
         if(fv.equals(ov)) return false;
-        if(avs.size()!=0){
-            if(avs.get(0).after(ov)) return false;
-        }
-        if(avs.size()!=0){
+        if(avs.isEmpty() && avs.get(0).after(ov)) return false;
+
+        if(avs.isEmpty()){
             for(int y=0; y<avs.size();y++){
                 if(avs.get(y).equals(ov)) consistent=true;
             }
@@ -198,7 +204,8 @@ public class JIraInfo {
 
     //Cold Start approach
     private static Release getInfectedRelease(Release ovRel, Release fvRel){
-        int ov=ovRel.getVersion(), fv= fvRel.getVersion();
+        int ov=ovRel.getVersion();
+        int fv= fvRel.getVersion();
         int iv=(int)Math.floor(fv-((fv-ov)*P));
         if(iv<0){
             return releases.get(0);
@@ -210,7 +217,8 @@ public class JIraInfo {
 
 
     private static Date getRelease(Date target){
-        Date prev, next;
+        Date prev;
+        Date next;
         for(int i=0; i<releases.size()-1; i++){
             prev=releases.get(i).getDate();
             next=releases.get(i+1).getDate();

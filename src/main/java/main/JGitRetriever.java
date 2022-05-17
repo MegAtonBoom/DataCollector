@@ -1,26 +1,16 @@
-import com.opencsv.CSVWriter;
+package main;
+
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.diff.*;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevTree;
-import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
-import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.eclipse.jgit.treewalk.filter.PathSuffixFilter;
-import org.eclipse.jgit.util.io.DisabledOutputStream;
 
 import java.io.*;
-import java.lang.module.ModuleDescriptor;
-import java.text.MessageFormat;
 import java.util.*;
 
 public class JGitRetriever {
@@ -34,14 +24,12 @@ public class JGitRetriever {
     private Git git;
     private Repository repository;
     private List<Release> releases;
-    //private List<csvRow> startingFiles;
 
 
     public JGitRetriever(String path, List<Release> releases, List<TicketBug> tickets) throws GitAPIException, IOException {
         this.path=path;
         this.tickets=tickets;
         this.commits=new ArrayList<>();
-        //this.startingFiles=new ArrayList<>();
         this.releases=releases;
         getRepoAndCommits();
     }
@@ -60,21 +48,24 @@ public class JGitRetriever {
 
 
     public void getAnyFileAndData() throws IOException {
-        int i = this.commits.size(), j = 0, repeat = 0;
-        RevCommit oldCommit = null, newCommit;
+        int i = this.commits.size();
+        int j = 0;
+        RevCommit oldCommit = null;
+        RevCommit newCommit;
         List<DiffEntry> diffEntries;
         DiffEntry entry;
-        csvRow row;
+        CsvRow row;
         boolean tick=false;
         TicketBug currentTb = null;
-        HashMap<String, csvRow> rows = new HashMap<>();
+        HashMap<String, CsvRow> rows = new HashMap<>();
+        String targetExt=".java";
 
         List<String[]> output = new ArrayList<>();
-        output.add(csvRow.getHeadString());
+        output.add(CsvRow.getHeadString());
         OpencsvInterface ocsvi;
 
-        Set entrySet;
-        Iterator it;
+        Set<Map.Entry<String, CsvRow>> entrySet;
+        Iterator<Map.Entry<String, CsvRow>> it;
 
         OutputStream outputStream = new ByteArrayOutputStream();
         while (i > 0 && j < this.releases.size()) {
@@ -96,8 +87,8 @@ public class JGitRetriever {
                 entrySet = rows.entrySet();
                 it = entrySet.iterator();
                 while(it.hasNext()){
-                    Map.Entry me = (Map.Entry)it.next();
-                    csvRow currRow=(csvRow) me.getValue();
+                    Map.Entry<String, CsvRow> me =it.next();
+                    CsvRow currRow=me.getValue();
                     currRow.setVersion(j);
                     currRow.ageSetter(oldCommit.getCommitTime());
                     output.add(currRow.toStringArray());
@@ -126,7 +117,7 @@ public class JGitRetriever {
                         DiffEntry.ChangeType ct = entry.getChangeType();
 
                         if (ct == DiffEntry.ChangeType.ADD) {
-                            if (enp.endsWith(".java") && !rows.containsKey(enp)) {
+                            if (enp.endsWith(targetExt) && !rows.containsKey(enp)) {
                                 //newCommit.
                                 row = getFileData(enp, j+1, el, rows, ct, auth);
                                 row.setCreationDate(newCommit.getCommitTime());
@@ -134,7 +125,7 @@ public class JGitRetriever {
                             }
                         }
                         else if (ct == DiffEntry.ChangeType.MODIFY){
-                            if(enp.endsWith(".java") && rows.containsKey(enp))
+                            if(enp.endsWith(targetExt) && rows.containsKey(enp))
                             {
                                 if(tick&&(!currentTb.getAffectedFiles().contains(enp))) {
                                     currentTb.addAffectedFile(enp);
@@ -147,7 +138,7 @@ public class JGitRetriever {
 
                         }
                         else if (ct == DiffEntry.ChangeType.DELETE) {
-                            if (eop.endsWith(".java") && rows.containsKey(eop)) {
+                            if (eop.endsWith(targetExt) && rows.containsKey(eop)) {
                                 if(tick&&(!currentTb.getAffectedFiles().contains(eop))){
                                     currentTb.addAffectedFile(eop);
                                 }
@@ -155,21 +146,21 @@ public class JGitRetriever {
                             }
                         }
                         else if (ct == DiffEntry.ChangeType.RENAME) {
-                            if (eop.endsWith(".java") && rows.containsKey(eop)) {
-                                csvRow tempRow=rows.get(eop);
+                            if (eop.endsWith(targetExt) && rows.containsKey(eop)) {
+                                CsvRow tempRow=rows.get(eop);
                                 tempRow.setVersion(j+1);
                                 tempRow.setFilePath(enp);
                                 rows.put(enp, tempRow);
                                 rows.remove(eop);
                             }
                         }
-                        else if (ct == DiffEntry.ChangeType.COPY) {
-                            if (!rows.containsKey(enp)) {
-                                csvRow tempRow=rows.get(eop);
-                                tempRow.setVersion(j+1);
-                                tempRow.setFilePath(enp);
-                                rows.put(enp, tempRow);
-                            }
+                        else if (ct == DiffEntry.ChangeType.COPY && !rows.containsKey(enp)) {
+
+                            CsvRow tempRow=rows.get(eop);
+                            tempRow.setVersion(j+1);
+                            tempRow.setFilePath(enp);
+                            rows.put(enp, tempRow);
+
 
                         }
 
@@ -185,8 +176,8 @@ public class JGitRetriever {
 
         it = entrySet.iterator();
         while(it.hasNext()){
-            Map.Entry me = (Map.Entry)it.next();
-            csvRow currRow=(csvRow) me.getValue();
+            Map.Entry<String, CsvRow> me =it.next();
+            CsvRow currRow= me.getValue();
             currRow.setVersion(j);
             output.add(currRow.toStringArray());
         }
@@ -198,36 +189,49 @@ public class JGitRetriever {
     }
 
     private void setBuggyness(List<String[]> output){
-        int v, it=0;
+        int v;
         for(TicketBug bug: this.tickets){
             try {
 
                 for (String file : bug.getAffectedFiles()) {
                     for (String[] row : output) {
-                        it++;
-                        try {
-                            v = Integer.valueOf(row[0]);
-                        }catch(NumberFormatException e){continue;}
+                        if((v=versionCast(row[0]))==-1) continue;
                         if ((row[1].equals(file)) && (v >= bug.getInfectRelease().getVersion() && v < bug.getFixedRelease().getVersion())) {
                             row[14] = "Yes";
                         }
                     }
                 }
             }catch(NullPointerException e){
-
+                //just skipping
             }
         }
-
-
-
     }
 
-    private csvRow getFileData(String file, int vers, List<Edit> editList, HashMap<String,csvRow> currentRows, DiffEntry.ChangeType ct, PersonIdent auth){
-        int LOC=0, touchedLOC=0, NRevisions=0, addedLOC=0, maxAddedLOC=0, churn=0, maxChurn=0, revChurn=0;
+    private int versionCast(String number){
+        int res;
+        try{
+            res=Integer.valueOf(number);
+        }
+        catch(NumberFormatException e){
+            res=-1;
+        }
+        return res;
+    }
+
+    private CsvRow getFileData(String file, int vers, List<Edit> editList, HashMap<String, CsvRow> currentRows, DiffEntry.ChangeType ct, PersonIdent auth){
+        int loc=0;
+        int touchedLoc=0;
+        int nRevisions=0;
+        int addedLOC=0;
+        int maxAddedLoc=0;
+        int churn=0;
+        int maxChurn=0;
+        int revChurn=0;
         int addedLines=0, deletedLines=0, modifiedLines=0;
-        double AVGAddedLOC=0, AVGChurn=0;
+        double AvgAddedLoc=0;
+        double AvgChurn=0;
         List<PersonIdent> pi=new ArrayList<>();
-        csvRow current=new csvRow(vers, file);
+        CsvRow current=new CsvRow(vers, file);
 
 
         for(Edit edit:editList){
@@ -250,22 +254,22 @@ public class JGitRetriever {
 
         if(ct==DiffEntry.ChangeType.MODIFY) {
 
-            csvRow old= currentRows.get(file);
-            LOC=old.getLOC();
-            touchedLOC=old.getTouchedLOC();
-            NRevisions=old.getNRevisions()+1;
-            addedLOC=old.getAddedLOC();
-            maxAddedLOC=old.getMaxAddedLOC();
+            CsvRow old= currentRows.get(file);
+            loc=old.getLoc();
+            touchedLoc=old.getTouchedLoc();
+            nRevisions=old.getnRevisions()+1;
+            addedLOC=old.getAddedLoc();
+            maxAddedLoc=old.getMaxAddedLoc();
             churn=old.getChurn();
             maxChurn=old.getMaxChurn();
-            AVGAddedLOC=old.getAVGAddedLOC();
-            AVGChurn=old.getAVGChurn();
+            AvgAddedLoc=old.getAvgAddedLoc();
+            AvgChurn=old.getAvgChurn();
             pi=old.getAuthors();
 
-            touchedLOC = touchedLOC + addedLines + deletedLines + modifiedLines;
+            touchedLoc = touchedLoc + addedLines + deletedLines + modifiedLines;
             addedLOC = addedLOC + addedLines;
-            maxAddedLOC = Math.max(maxAddedLOC, addedLines);
-            AVGAddedLOC = ((AVGAddedLOC * (NRevisions)) + addedLines) / NRevisions + 1;
+            maxAddedLoc = Math.max(maxAddedLoc, addedLines);
+            AvgAddedLoc = ((AvgAddedLoc * (nRevisions)) + addedLines) / nRevisions + 1;
             revChurn = addedLines - deletedLines;
             if (revChurn < 0) {
                 revChurn *= -1;
@@ -273,22 +277,22 @@ public class JGitRetriever {
 
             churn = churn + revChurn;
             maxChurn = Math.max(maxChurn, revChurn);
-            AVGChurn = ((AVGChurn * (NRevisions)) + revChurn) / NRevisions + 1;
+            AvgChurn = ((AvgChurn * (nRevisions)) + revChurn) / nRevisions + 1;
 
         }
-        LOC = LOC + addedLines - deletedLines;
+        loc = loc + addedLines - deletedLines;
         if(!pi.contains(auth)){ pi.add(auth);}
 
-        current.setLOC(LOC);
-        current.setTouchedLOC(touchedLOC);
-        current.setAddedLOC(addedLOC);
-        current.setMaxAddedLOC(maxAddedLOC);
-        current.setAVGAddedLOC(AVGAddedLOC);
-        current.setNRevisions(NRevisions);
+        current.setLoc(loc);
+        current.setTouchedLoc(touchedLoc);
+        current.setAddedLoc(addedLOC);
+        current.setMaxAddedLoc(maxAddedLoc);
+        current.setAvgAddedLoc(AvgAddedLoc);
+        current.setnRevisions(nRevisions);
 
         current.setChurn(churn);
         current.setMaxChurn(maxChurn);
-        current.setAVGChurn(AVGChurn);
+        current.setAvgChurn(AvgChurn);
         current.setAuthors(pi);
 
         return current;

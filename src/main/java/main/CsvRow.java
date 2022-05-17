@@ -1,54 +1,66 @@
+package main;
+
 import org.eclipse.jgit.lib.PersonIdent;
 
-import java.util.Date;
 import java.util.List;
 
-public class csvRow {
+public class CsvRow {
 
-    private int version, LOC, touchedLOC, NRevisions, addedLOC, maxAddedLOC, churn, maxChurn, age, weighedAge, creationTime;
-    private double AVGAddedLOC, AVGChurn;
+    private int version;
+    private int loc;
+    private int touchedLoc;
+    private int nRevisions;
+    private int addedLoc;
+    private int maxAddedLoc;
+    private int churn;
+    private int maxChurn;
+    private int age;
+    private int weighedAge;
+    private int creationTime;
+    private double AvgAddedLoc;
+    private double AvgChurn;
     private List<PersonIdent> authors;
     private String filePath;
     private boolean buggy=false;
 
-    public int getLOC() {
-        return this.LOC;
+    public int getLoc() {
+        return this.loc;
     }
 
-    public void setLOC(int LOC) {
-        this.LOC = LOC;
+    public void setLoc(int loc) {
+        this.loc = loc;
     }
 
-    public int getTouchedLOC() {
-        return this.touchedLOC;
+    public int getTouchedLoc() {
+        return this.touchedLoc;
     }
 
-    public void setTouchedLOC(int LOC) {
-        this.touchedLOC = LOC;
+    public void setTouchedLoc(int Loc) {
+        this.touchedLoc = Loc;
     }
 
-    public int getNRevisions() {
-        return this.NRevisions;
+    public int getnRevisions() {
+        return this.nRevisions;
     }
 
-    public void setNRevisions(int nRev) {
-        this.NRevisions = nRev;
+    public void setnRevisions(int nRev) {
+        this.nRevisions = nRev;
     }
 
-    public int getAddedLOC() {
-        return this.addedLOC;
+    public int getAddedLoc() {
+        return this.addedLoc;
     }
 
-    public void setAddedLOC(int LOC) {
-        this.addedLOC = LOC;
+    public void setAddedLoc(int Loc) {
+        this.addedLoc = Loc;
     }
 
-    public int getMaxAddedLOC() {
-        return this.maxAddedLOC;
+    public int getMaxAddedLoc() {
+        return this.maxAddedLoc;
     }
 
-    public void setMaxAddedLOC(int LOC) {
-        this.maxAddedLOC = LOC;
+    public void setMaxAddedLoc(int Loc) {
+        this.maxAddedLoc = Loc;
     }
 
     public int getChurn() {
@@ -67,19 +79,19 @@ public class csvRow {
         this.maxChurn = churn;
     }
 
-    public double getAVGAddedLOC() {
-        return this.AVGAddedLOC;
+    public double getAvgAddedLoc() {
+        return this.AvgAddedLoc;
     }
 
-    public void setAVGAddedLOC(double LOC) {
-        this.AVGAddedLOC = LOC;
+    public void setAvgAddedLoc(double Loc) {
+        this.AvgAddedLoc = Loc;
     }
 
-    public double getAVGChurn() {
-        return this.AVGChurn;
+    public double getAvgChurn() {
+        return this.AvgChurn;
     }
 
-    public void setAVGChurn(double churn) { this.AVGChurn = churn; }
+    public void setAvgChurn(double churn) { this.AvgChurn = churn; }
 
     public String getFilePath() {
         return filePath;
@@ -139,35 +151,34 @@ public class csvRow {
         this.buggy = buggy;
     }
 
-    public csvRow(int version, String filePath){
+    public CsvRow(int version, String filePath){
         this.version=version;
         this.filePath=filePath;
     }
 
     public String[] toStringArray(){
-        String buggy="No";
-        if(this.buggy) buggy="Yes";
+        String noBuggy="No";
+        if(this.buggy) noBuggy="Yes";
 
-        String row[]=new String[]{""+this.version,
+        return new String[]{""+this.version,
                 this.filePath,
-                ""+this.NRevisions,
-                ""+this.LOC,
-                ""+this.touchedLOC,
-                ""+this.addedLOC,
-                ""+this.maxAddedLOC,
-                ""+this.AVGAddedLOC,
+                ""+this.nRevisions,
+                ""+this.loc,
+                ""+this.touchedLoc,
+                ""+this.addedLoc,
+                ""+this.maxAddedLoc,
+                ""+this.AvgAddedLoc,
                 ""+this.churn,
                 ""+this.maxChurn,
-                ""+this.AVGChurn,
+                ""+this.AvgChurn,
                 ""+this.age,
                 ""+this.weighedAge,
                 ""+this.authors.size(),
-                buggy};
-        return row;
+                noBuggy};
     }
 
     public static String[] getHeadString(){
-        String head[]=new String[]{"Version",
+        return new String[]{"Version",
                 "File_Name",
                 "Num_Revisions",
                 "LOC",
@@ -182,13 +193,12 @@ public class csvRow {
                 "Weighed_Age",
                 "N_Authors",
                 "Buggy"};
-        return head;
     }
 
     public void ageSetter(int current){
-        double time=(((((current-this.creationTime))/60)/60)/24)/7;
+        double time=((((current-this.creationTime)/60)/60)/24)/(double)7;
         this.age=(int)Math.ceil(time);
-        this.weighedAge=this.age*this.touchedLOC;
+        this.weighedAge=this.age*this.touchedLoc;
     }
 
 }
