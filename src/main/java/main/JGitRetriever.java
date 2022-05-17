@@ -53,12 +53,8 @@ public class JGitRetriever {
         RevCommit oldCommit = null;
         RevCommit newCommit;
         List<DiffEntry> diffEntries;
-        DiffEntry entry;
-        CsvRow row;
-        boolean tick=false;
         TicketBug currentTb = null;
         HashMap<String, CsvRow> rows = new HashMap<>();
-        String targetExt=".java";
 
         List<String[]> output = new ArrayList<>();
         output.add(CsvRow.getHeadString());
@@ -69,7 +65,6 @@ public class JGitRetriever {
 
         OutputStream outputStream = new ByteArrayOutputStream();
         while (i > 0 && j < this.releases.size()) {
-            tick=false;
             if (i != this.commits.size()) oldCommit = this.commits.get(i);
             newCommit = this.commits.get(i - 1);
             PersonIdent auth=newCommit.getCommitterIdent();
@@ -134,10 +129,7 @@ public class JGitRetriever {
                 }
                 else if (ct == DiffEntry.ChangeType.MODIFY && enp.endsWith(targetExt) && rows.containsKey(enp)){
 
-
-                        if((tb!=null)&&(!tb.getAffectedFiles().contains(enp))) {
-                            tb.addAffectedFile(enp);
-                        }
+                        addBuggedFile(tb, enp);
                         row = getFileData(enp, v, el, rows, ct, auth);
                         row.setCreationDate(rows.get(enp).getCreationTime());
                         rows.put(enp, row);
@@ -147,10 +139,8 @@ public class JGitRetriever {
                 }
                 else if (ct == DiffEntry.ChangeType.DELETE && eop.endsWith(targetExt) && rows.containsKey(eop)) {
 
-                        if((tb!=null)&&(!tb.getAffectedFiles().contains(eop))){
-                            tb.addAffectedFile(eop);
-                        }
-                        rows.remove(eop);
+                    addBuggedFile(tb, eop);
+                    rows.remove(eop);
 
                 }
                 else if (ct == DiffEntry.ChangeType.RENAME && eop.endsWith(targetExt) && rows.containsKey(eop)) {
@@ -160,7 +150,6 @@ public class JGitRetriever {
                         tempRow.setFilePath(enp);
                         rows.put(enp, tempRow);
                         rows.remove(eop);
-
                 }
                 else if (ct == DiffEntry.ChangeType.COPY && !rows.containsKey(enp)) {
 
@@ -175,6 +164,12 @@ public class JGitRetriever {
 
         }
 
+    }
+
+    private void addBuggedFile(TicketBug tb, String file){
+        if((tb!=null)&&(!tb.getAffectedFiles().contains(file))){
+            tb.addAffectedFile(file);
+        }
     }
 
     private TicketBug getRelatedTicket (RevCommit commit){
