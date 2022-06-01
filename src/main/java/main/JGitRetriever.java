@@ -17,7 +17,7 @@ public class JGitRetriever {
 
 
     private String path;
-    private String outputCsv="C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\data.csv";
+    private String outputCsv="C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\storm\\data.csv";
     private List<RevCommit> commits;
 
 
@@ -52,14 +52,13 @@ public class JGitRetriever {
         this.repository = new FileRepository(this.path);
         String treeName = "refs/heads/master"; // tag or branch
         this.git= new Git(repository);
-        getCommits(this.releases.get(this.releases.size()-1), treeName);
+        getCommits(treeName);
     }
 
-    public void getCommits(Release last, String treeName) throws IOException, GitAPIException {
+    public void getCommits(String treeName) throws IOException, GitAPIException {
 
         this.commits=new ArrayList<>();
         for (RevCommit commit : this.git.log().add(this.repository.resolve(treeName)).call()) {
-
             this.commits.add(commit);
         }
     }
@@ -165,8 +164,6 @@ public class JGitRetriever {
                         row.setCreationDate(rows.get(enp).getCreationTime());
                         rows.put(enp, row);
 
-
-
                 }
                 else if (ct == DiffEntry.ChangeType.DELETE && eop.endsWith(targetExt) && rows.containsKey(eop)) {
 
@@ -228,15 +225,19 @@ public class JGitRetriever {
         } else {
             return new CanonicalTreeParser(null, or, commit.getTree().getId());
         }
-
     }
 
     public void checkBuggyness(){
-        for(TicketBug bug: this.tickets){
-            try {
-                setBugyness(output, bug);
-            }catch(NullPointerException e){
-                //just skipping
+        for(String[] row: output){
+            row[14]="No";
+        }
+        if(this.tickets.size()!=0) {
+            for (TicketBug bug : this.tickets) {
+                try {
+                    setBugyness(output, bug);
+                } catch (NullPointerException e) {
+                    //just skipping
+                }
             }
         }
     }

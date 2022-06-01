@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-
 public class JIraInfo {
 
     private static String projName="STORM";
@@ -102,11 +101,12 @@ public class JIraInfo {
             releases.add(new Release(dates.get(i),i+1));
         }
 
+
         bugs=getJira();
         jgr=new JGitRetriever("C:\\Users\\39320\\Desktop\\Corsi\\isw2\\storm\\.git", releases, bugs);
-        jgr.getAnyFileAndData(releases.get(releases.size()-1), "C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\data.csv");
+        jgr.getAnyFileAndData(releases.get(releases.size()-1), "C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\storm\\data.csv");
 
-        wekaInt=new WekaInterface(jgr, releases, bugs, "C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\");
+        wekaInt=new WekaInterface(jgr, releases, bugs, "C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\storm\\");
         wekaInt.getAllFiles();
 
     }

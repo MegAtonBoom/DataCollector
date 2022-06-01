@@ -20,7 +20,7 @@ import java.util.List;
 public class WekaInterface {
 
     String folderPath;
-    String allDataSourcePath=folderPath+"data.csv";
+    String allDataSourcePath;
     String training="training";
     String testing="testing";
     String csv=".csv";
@@ -36,6 +36,7 @@ public class WekaInterface {
         this.releases=releases;
         this.allTickets=allTickets;
         this.folderPath=folderPath;
+        this.allDataSourcePath=this.folderPath+"data.csv";
     }
 
     public void getAllFiles() throws Exception{
@@ -108,7 +109,6 @@ public class WekaInterface {
         // create CSVWriter object filewriter object as parameter
         CSVWriter writerTrain = new CSVWriter(outputfileTrain);
         CSVWriter writerTest = new CSVWriter(outputfileTest);
-
         setTickets(testInstance.getVersion());
         this.jgit.setTickets(this.currentTbs);
         this.jgit.checkBuggyness();
@@ -121,6 +121,7 @@ public class WekaInterface {
                 if (Integer.valueOf(row[0]) < testInstance.getVersion()) {
                     actualCpy = Arrays.copyOfRange(row, 2, row.length);
                     writerTrain.writeNext(actualCpy);
+                    writerTrain.flush();
                 }
             }
             catch(NumberFormatException e){
@@ -143,9 +144,12 @@ public class WekaInterface {
                     actualCpy = Arrays.copyOfRange(nextLine, 2, nextLine.length);
 
                     writerTest.writeNext(actualCpy);
+                    writerTest.flush();
 
                 }
             }
+            writerTest.flush();
+            writerTrain.flush();
             writerTest.close();
             writerTrain.close();
         } catch (IOException | CsvValidationException e) {
@@ -158,7 +162,7 @@ public class WekaInterface {
     private void setTickets(int fv){
         List<TicketBug> currentTb = new ArrayList<>();
         for(TicketBug tb: this.allTickets){
-            if(tb.getFixedRelease().getVersion()<=fv) currentTb.add(tb);
+            if(tb.getFixedRelease().getVersion()<=fv-1) currentTb.add(tb);
         }
         this.currentTbs=currentTb;
     }
@@ -167,15 +171,15 @@ public class WekaInterface {
     public static void csvToArff(String csvPath, String arffPath) throws IOException {
 
         // load CSV
-        CSVLoader loader = new CSVLoader();
-        loader.setSource(new File(csvPath));
-        Instances data = loader.getDataSet();
+            CSVLoader loader = new CSVLoader();
+            loader.setSource(new File(csvPath));
+            Instances data = loader.getDataSet();
 
-        // save ARFF
-        ArffSaver saver = new ArffSaver();
-        saver.setInstances(data);
-        saver.setFile(new File(arffPath));
-        saver.writeBatch();
-        // .arff file will be created in the output location
+            // save ARFF
+            ArffSaver saver = new ArffSaver();
+            saver.setInstances(data);
+            saver.setFile(new File(arffPath));
+            saver.writeBatch();
+            // .arff file will be created in the output location
     }
 }
