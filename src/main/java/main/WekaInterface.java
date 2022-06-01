@@ -78,13 +78,13 @@ public class WekaInterface {
             csvToArff(testPath, testArffPath);
 
             source1 = new ConverterUtils.DataSource(trainArffPath);
-            Instances training = source1.getDataSet();
+            Instances istTraining = source1.getDataSet();
             source2 = new ConverterUtils.DataSource(testArffPath);
-            Instances testing = source2.getDataSet();
+            Instances istTesting = source2.getDataSet();
 
-            int numAttr = training.numAttributes();
-            training.setClassIndex(numAttr - 1);
-            testing.setClassIndex(numAttr - 1);
+            int numAttr = istTraining.numAttributes();
+            istTraining.setClassIndex(numAttr - 1);
+            istTesting.setClassIndex(numAttr - 1);
         }
 
     }
