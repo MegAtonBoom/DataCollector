@@ -231,7 +231,7 @@ public class JGitRetriever {
         for(String[] row: output){
             row[14]="No";
         }
-        if(this.tickets.size()!=0) {
+        if(!this.tickets.isEmpty()) {
             for (TicketBug bug : this.tickets) {
                 try {
                     setBugyness(output, bug);
