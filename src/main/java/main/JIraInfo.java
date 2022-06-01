@@ -1,8 +1,5 @@
 package main;
 
-import main.Release;
-import main.TicketBug;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -70,7 +67,7 @@ public class JIraInfo {
         List<Date> dates=new ArrayList<>();
         List<TicketBug> bugs=new ArrayList<>();
 
-        wekaInterface wekaInt;
+        WekaInterface wekaInt;
         //Get JSON API for closed bugs w/ AV in the project
         do {
             //Only gets a max of 1000 at a time, so must do this multiple times if bugs >1000
@@ -109,7 +106,7 @@ public class JIraInfo {
         jgr=new JGitRetriever("C:\\Users\\39320\\Desktop\\Corsi\\isw2\\storm\\.git", releases, bugs);
         jgr.getAnyFileAndData(releases.get(releases.size()-1), "C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\data.csv");
 
-        wekaInt=new wekaInterface(jgr, releases, bugs);
+        wekaInt=new WekaInterface(jgr, releases, bugs, "C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\");
         wekaInt.getAllFiles();
 
     }

@@ -3,10 +3,6 @@ package main;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
-import weka.classifiers.Evaluation;
-import weka.classifiers.bayes.NaiveBayes;
-import weka.classifiers.lazy.IBk;
-import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
 import weka.core.converters.ArffSaver;
 import weka.core.converters.CSVLoader;
@@ -21,50 +17,62 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class wekaInterface {
+public class WekaInterface {
 
-    String folderPath="C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\";
+    String folderPath;
     String allDataSourcePath=folderPath+"data.csv";
+    String training="training";
+    String testing="testing";
+    String csv=".csv";
+    String arff=".arff";
     JGitRetriever jgit;
     int lastRel=19;
     List<TicketBug> allTickets;
     List<TicketBug> currentTbs;
     List<Release> releases;
 
-    public wekaInterface(JGitRetriever jgit, List<Release> releases, List<TicketBug> allTickets){
+    public WekaInterface(JGitRetriever jgit, List<Release> releases, List<TicketBug> allTickets, String folderPath){
         this.jgit=jgit;
         this.releases=releases;
         this.allTickets=allTickets;
+        this.folderPath=folderPath;
     }
 
     public void getAllFiles() throws Exception{
 
-        ConverterUtils.DataSource source1, source2;
+        ConverterUtils.DataSource source1;
+        ConverterUtils.DataSource source2;
         String trainPath;
         String testPath;
         String trainArffPath;
         String testArffPath;
 
         for(int i=2  ; i<=this.lastRel; i++){
-            trainPath=this.folderPath+"training"+this.releases.get(i-1).getVersion()+".csv";
-            testPath=this.folderPath+"testing"+this.releases.get(i-1).getVersion()+".csv";
+            trainPath=this.folderPath+this.training+this.releases.get(i-1).getVersion()+this.csv;
+            testPath=this.folderPath+this.testing+this.releases.get(i-1).getVersion()+this.csv;
 
             File file = new File(trainPath);
-            file.createNewFile(); // if file already exists will do nothing
+            // if file already exists will do nothing
+            if(file.createNewFile()){  //skip
+            }
+
 
             file=new File(testPath);
-            file.createNewFile();
+            if(file.createNewFile()){  //skip
+            }
 
             createFiles(this.releases.get(i-1));
 
-            trainArffPath=this.folderPath+"training"+this.releases.get(i-1).getVersion()+".arff";
-            testArffPath=this.folderPath+"testing"+this.releases.get(i-1).getVersion()+".arff";
+            trainArffPath=this.folderPath+this.training+this.releases.get(i-1).getVersion()+this.arff;
+            testArffPath=this.folderPath+this.testing+this.releases.get(i-1).getVersion()+this.arff;
 
             file=new File(trainArffPath);
-            file.createNewFile();
+            if(file.createNewFile()){  //skip
+            }
 
             file=new File(testArffPath);
-            file.createNewFile();
+            if(file.createNewFile()){  //skip
+            }
 
             csvToArff(trainPath, trainArffPath);
             csvToArff(testPath, testArffPath);
@@ -88,8 +96,8 @@ public class wekaInterface {
 
         String[] actualCpy;
         String[] head=CsvRow.getHeadString();
-        String trainPath=this.folderPath+"training"+testInstance.getVersion()+".csv";
-        String testPath=this.folderPath+"testing"+testInstance.getVersion()+".csv";
+        String trainPath=this.folderPath+this.training+testInstance.getVersion()+this.csv;
+        String testPath=this.folderPath+this.testing+testInstance.getVersion()+this.csv;
         File fileTrain = new File(trainPath);
         File fileTest = new File(testPath);
 
@@ -141,7 +149,7 @@ public class wekaInterface {
             writerTest.close();
             writerTrain.close();
         } catch (IOException | CsvValidationException e) {
-            e.printStackTrace();
+            //just skipping
         }
 
 

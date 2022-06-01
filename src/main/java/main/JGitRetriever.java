@@ -91,7 +91,6 @@ public class JGitRetriever {
         Set<Map.Entry<String, CsvRow>> entrySet;
         Iterator<Map.Entry<String, CsvRow>> it;
         OutputStream outputStream = new ByteArrayOutputStream();
-        System.out.println(last.getVersion());
 
         while (i > 0 && j <= version) {
             if (i != this.commits.size()) oldCommit = this.commits.get(i);
