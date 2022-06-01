@@ -19,7 +19,7 @@ import java.util.List;
 
 public class JIraInfo {
 
-    private static String projName="BOOKKEEPER";
+    private static String projName="STORM";
     private static List<Release> releases=new ArrayList<>();
     private static final double P=1.5;
     private static String releaseDate="releaseDate";
@@ -60,7 +60,7 @@ public class JIraInfo {
 
 
 
-    public static void main(String[] args) throws IOException, JSONException, GitAPIException, ParseException {
+    public static void main(String[] args) throws Exception {
         JGitRetriever jgr;
 
         Integer j = 0;
@@ -69,6 +69,8 @@ public class JIraInfo {
         List<String> versNumbers= new ArrayList<String>();
         List<Date> dates=new ArrayList<>();
         List<TicketBug> bugs=new ArrayList<>();
+
+        wekaInterface wekaInt;
         //Get JSON API for closed bugs w/ AV in the project
         do {
             //Only gets a max of 1000 at a time, so must do this multiple times if bugs >1000
@@ -102,9 +104,14 @@ public class JIraInfo {
         for( i=0; i<dates.size();i++){
             releases.add(new Release(dates.get(i),i+1));
         }
+
         bugs=getJira();
-        jgr=new JGitRetriever("C:\\Users\\39320\\Desktop\\Corsi\\isw2\\bookkeeper3\\.git", releases, bugs);
-        jgr.getAnyFileAndData();
+        jgr=new JGitRetriever("C:\\Users\\39320\\Desktop\\Corsi\\isw2\\storm\\.git", releases, bugs);
+        jgr.getAnyFileAndData(releases.get(releases.size()-1), "C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\data.csv");
+
+        wekaInt=new wekaInterface(jgr, releases, bugs);
+        wekaInt.getAllFiles();
+
     }
 
 
@@ -153,7 +160,7 @@ public class JIraInfo {
                     ovRelease=getReleaseFromDate(openDate);
                     infectRelease=getInfectedRelease(avs, ovRelease, fvRelease);
                     if ((!checkInfoConsistency(openDate,resolutionDate,avs))||!checkReleasesConsistency(infectRelease,ovRelease,fvRelease)) continue;
-                    allBugs.add(new TicketBug(key, infectRelease, fvRelease));
+                    allBugs.add(new TicketBug(key, infectRelease, fvRelease, ovRelease));
                 }catch(Exception e){
                     //just skipping
                 }

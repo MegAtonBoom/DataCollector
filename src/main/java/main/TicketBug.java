@@ -11,7 +11,18 @@ public class TicketBug {
     private Release fixedRelease;
 
 
+    private Release ovRelease;
+
+
     private List<String> affectedFiles;
+
+    public Release getOvRelease() {
+        return ovRelease;
+    }
+
+    public void setOvRelease(Release ovRelease) {
+        this.ovRelease = ovRelease;
+    }
 
 
     public String getId() {
@@ -45,10 +56,11 @@ public class TicketBug {
         this.fixedRelease = fixedRelease;
     }
 
-    public TicketBug(String id, Release infectRelease, Release fixedRelease){
+    public TicketBug(String id, Release infectRelease, Release fixedRelease, Release ovRelease){
         this.id=id;
         this.infectRelease=infectRelease;
         this.fixedRelease=fixedRelease;
         this.affectedFiles=new ArrayList<>();
+        this.ovRelease=ovRelease;
     }
 }

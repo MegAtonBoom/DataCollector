@@ -17,20 +17,33 @@ public class JGitRetriever {
 
 
     private String path;
-    private String outputCsv="C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\databk.csv";
+    private String outputCsv="C:\\Users\\39320\\Desktop\\Corsi\\isw2\\data\\progetto\\data.csv";
     private List<RevCommit> commits;
+
+
+
     private List<TicketBug> tickets;
 
     private Git git;
     private Repository repository;
     private List<Release> releases;
 
+    public List<String[]> getOutput() {
+        return output;
+    }
+
+    public void setOutput(List<String[]> output) {
+        this.output = output;
+    }
+
+    private List<String[]> output;
 
     public JGitRetriever(String path, List<Release> releases, List<TicketBug> tickets) throws GitAPIException, IOException {
         this.path=path;
         this.tickets=tickets;
         this.commits=new ArrayList<>();
         this.releases=releases;
+        this.output=new ArrayList<>();
         getRepoAndCommits();
     }
 
@@ -39,7 +52,14 @@ public class JGitRetriever {
         this.repository = new FileRepository(this.path);
         String treeName = "refs/heads/master"; // tag or branch
         this.git= new Git(repository);
-        for (RevCommit commit : git.log().add(repository.resolve(treeName)).call()) {
+        getCommits(this.releases.get(this.releases.size()-1), treeName);
+    }
+
+    public void getCommits(Release last, String treeName) throws IOException, GitAPIException {
+
+        this.commits=new ArrayList<>();
+        for (RevCommit commit : this.git.log().add(this.repository.resolve(treeName)).call()) {
+
             this.commits.add(commit);
         }
     }
@@ -47,35 +67,48 @@ public class JGitRetriever {
 
 
 
-    public void getAnyFileAndData() throws IOException {
+    public void getAnyFileAndData(Release last, String address ) throws IOException {
         int i = this.commits.size();
         int j = 0;
+        int version;
+        if(last.getVersion()<29){
+            version=last.getVersion();
+        }
+        else{
+            version=this.releases.size();
+        }
         RevCommit oldCommit = null;
         RevCommit newCommit;
         List<DiffEntry> diffEntries;
         TicketBug currentTb = null;
+        Date commitDate;
         HashMap<String, CsvRow> rows = new HashMap<>();
 
-        List<String[]> output = new ArrayList<>();
+
         output.add(CsvRow.getHeadString());
         OpencsvInterface ocsvi;
 
         Set<Map.Entry<String, CsvRow>> entrySet;
         Iterator<Map.Entry<String, CsvRow>> it;
-
         OutputStream outputStream = new ByteArrayOutputStream();
-        while (i > 0 && j < this.releases.size()) {
+        System.out.println(last.getVersion());
+
+        while (i > 0 && j <= version) {
             if (i != this.commits.size()) oldCommit = this.commits.get(i);
             newCommit = this.commits.get(i - 1);
             PersonIdent auth=newCommit.getCommitterIdent();
-
+            commitDate=new Date(newCommit.getCommitTime() * 1000L);
             currentTb=getRelatedTicket(newCommit);
+            if(commitDate.after(last.getDate())) {
+                i--;
+                continue;
+            }
 
-            if ((new Date((newCommit.getCommitTime() * 1000L))).after(this.releases.get(j).getDate())) {
+            if (commitDate.after(this.releases.get(j).getDate())) {
                 j++;
                 entrySet = rows.entrySet();
                 it = entrySet.iterator();
-                writeOutput(it, output, j, oldCommit);
+                writeOutput(it, j, oldCommit);
             }
 
             try (ObjectReader reader = git.getRepository().newObjectReader()) {
@@ -91,14 +124,13 @@ public class JGitRetriever {
             }
             i--;
         }
-
         entrySet = rows.entrySet();
 
         it = entrySet.iterator();
-        writeOutput(it, output, j, oldCommit);
-        checkBuggyness(output);
+        writeOutput(it, j, oldCommit);
+        checkBuggyness();
 
-        ocsvi = new OpencsvInterface(this.outputCsv, output);
+        ocsvi = new OpencsvInterface(address, output);
         ocsvi.writeFile();
 
     }
@@ -157,7 +189,6 @@ public class JGitRetriever {
                     tempRow.setVersion(v);
                     tempRow.setFilePath(enp);
                     rows.put(enp, tempRow);
-
                 }
 
             }
@@ -181,7 +212,7 @@ public class JGitRetriever {
         return null;
     }
 
-    private void writeOutput(Iterator<Map.Entry<String, CsvRow>> it, List<String[]> output, int j, RevCommit commit){
+    private void writeOutput(Iterator<Map.Entry<String, CsvRow>> it, int j, RevCommit commit){
         while(it.hasNext()){
             Map.Entry<String, CsvRow> me =it.next();
             CsvRow currRow=me.getValue();
@@ -201,7 +232,7 @@ public class JGitRetriever {
 
     }
 
-    private void checkBuggyness(List<String[]> output){
+    public void checkBuggyness(){
         for(TicketBug bug: this.tickets){
             try {
                 setBugyness(output, bug);
@@ -340,6 +371,14 @@ public class JGitRetriever {
         current.setAuthors(pi);
 
         return current;
+    }
+
+    public List<TicketBug> getTickets() {
+        return tickets;
+    }
+
+    public void setTickets(List<TicketBug> tickets) {
+        this.tickets = tickets;
     }
 
 
